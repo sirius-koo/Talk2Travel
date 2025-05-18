@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>결과 – Talk2Travel</title>
+</head>
+<body>
+  <h1>파싱 결과</h1>
+  <ul>
+    <li>도시: {{ parsed.city }}</li>
+    <li>시작일: {{ parsed.start_date }}</li>
+    <li>종료일: {{ parsed.end_date }}</li>
+    <li>인원: {{ parsed.pax }}</li>
+    {% if parsed.budget is defined %}
+    <li>예산: {{ parsed.budget }}</li>
+    {% endif %}
+  </ul>
+  <a href="{{ url_for('core.home') }}">다시 입력</a>
+</body>
+</html>
