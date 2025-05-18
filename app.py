@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from talk2travel import create_app
 
 app = create_app()
