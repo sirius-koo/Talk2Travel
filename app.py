@@ -1,9 +1,11 @@
-from dotenv import load_dotenv
-load_dotenv()
+from flask import Flask, render_template
 
-from talk2travel import create_app
+app = Flask(
+    __name__,
+    template_folder="frontend/templates",
+    static_folder="frontend/static"
+)
 
-app = create_app()
-
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.route("/")
+def calendar_page():
+    return render_template("index.html")
