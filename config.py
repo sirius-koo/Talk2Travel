@@ -1,7 +1,11 @@
 import os
+from dotenv import load_dotenv
+
+# .env 파일 읽어 환경변수로 설정
+load_dotenv()
 
 class Config:
-    DEBUG = os.getenv("FLASK_DEBUG", "False") == "True"
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+    AMADEUS_CLIENT_ID     = os.getenv("AMADEUS_CLIENT_ID")
+    AMADEUS_CLIENT_SECRET = os.getenv("AMADEUS_CLIENT_SECRET")
+    RAPIDAPI_KEY          = os.getenv("RAPIDAPI_KEY")
+    RAPIDAPI_HOST         = os.getenv("RAPIDAPI_HOST")

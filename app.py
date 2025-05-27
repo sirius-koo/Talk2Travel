@@ -2,6 +2,13 @@ from datetime import datetime, date
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import uuid, click
+from config import Config
+from amadeus import Client, ResponseError
+
+amadeus = Client(
+    client_id=Config.AMADEUS_CLIENT_ID,
+    client_secret=Config.AMADEUS_CLIENT_SECRET
+)
 
 app = Flask(
     __name__,
