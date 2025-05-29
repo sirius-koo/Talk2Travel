@@ -10,6 +10,28 @@ document.addEventListener('DOMContentLoaded', function () {
     locale: 'ko',
     initialView: 'dayGridMonth',
     selectable: true,
+
+    events: async function(fetchInfo, successCallback, failureCallback) {
+      try {
+        const schedules = await fetchJSON('/api/schedules');
+        const events = schedules.map(s => {
+          // FullCalendar는 end가 exclusive이므로, 하루 더해줍니다
+          const endDate = new Date(s.end);
+          endDate.setDate(endDate.getDate() + 1);
+          return {
+            id:    s.id,
+            title: s.city,                   // 제목에 도시명 사용
+            start: s.start,                  // YYYY-MM-DD
+            end:   endDate.toISOString().split('T')[0]
+          };
+        });
+        successCallback(events);
+      } catch (err) {
+        console.error(err);
+        failureCallback(err);
+      }
+    },
+
     // select 시 모달 열기
     select: info => openTripModal(calendar, info)
   });
@@ -19,16 +41,23 @@ document.addEventListener('DOMContentLoaded', function () {
   const form = document.getElementById('tripForm');
   form.addEventListener('submit', async ev => {
     ev.preventDefault();
+
     const data = Object.fromEntries(new FormData(form));
     const saved = await fetchJSON('/api/schedules', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    calendar.addEvent(saved);
     
     calendar.addEvent({
-      title: saved.city,       // ← 여기! 도시명을 타이틀로
+      id:    saved.id,
+      title: saved.city,
+      start: saved.start,
+      end: (() => {
+        const d = new Date(saved.end);
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().split('T')[0];
+      })()
     });
     
     bootstrap.Modal.getInstance(document.getElementById('tripModal')).hide();
