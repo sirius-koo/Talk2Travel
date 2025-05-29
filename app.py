@@ -165,9 +165,9 @@ def schedules_api():
         "budget":     sched.budget
     }), 201
 
+with app.app_context():
+        db.create_all()
 
 if __name__ == "__main__":
     # 앱 컨텍스트에서 테이블 생성
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
