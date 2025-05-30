@@ -2,19 +2,14 @@ from flask import Blueprint, request, jsonify
 from ..models import db, Schedule
 from datetime import datetime
 from flask_login import current_user
-from services.flight_service import search_flights
-from services.hotel_service  import get_hotel_ids, search_hotels
-from services.recommendation import (
-    rank_flights_by_price, simplify_flight,
-    rank_hotels_by_price,  simplify_hotel
-)
+from services.recommendation import simplify_flight, simplify_hotel
 
-bp = Blueprint('schedules', __name__, url_prefix='/api/schedules')
+api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 def iso_date(d):
     return d.isoformat() if d else None
 
-@bp.post('/')
+@api_bp.post('/')
 def create_schedule():
     data = request.get_json()
     sched = Schedule(
@@ -38,27 +33,30 @@ def create_schedule():
         "budget": sched.budget
     }), 201
 
-@bp.get('/')
+@api_bp.get('/')
 def list_schedules():
     rows = Schedule.query.filter_by(user_id=current_user.id).all()
     return jsonify([{ "id": s.id, "title": s.title, "start": iso_date(s.start), "end": iso_date(s.end) } for s in rows])
 
-@bp.route('/recommendations', methods=['POST'])
+@api_bp.route('/recommendations', methods=['POST'])
 def get_recommendations():
     data = request.get_json()
-    origin      = data['origin']
-    destination = data['destination']
-    start_date  = data['start_date']
-    end_date    = data['end_date']
+    origin      = data['origin']       # 예: ICN
+    destination = data['destination']  # 예: KIX
+    start_date  = data['start_date']   # 예: '2025-07-03'
+    end_date    = data['end_date']     # 예: '2025-07-07'
     passenger   = data.get('passenger', 1)
     budget      = data.get('budget', None)
 
-    flights = simplify_flight(origin, destination, start_date, end_date)[:3]
-    hotels  = simplify_hotel(destination, start_date, end_date)[:3]
+    # 항공 Top3
+    flights = simplify_flight(origin, destination, start_date, end_date)
+    top_flights = flights[:3]
 
-    return jsonify({'flights': flights, 'hotels': hotels})
+    # 숙소 Top3
+    hotels = simplify_hotel(destination, start_date, end_date)
+    top_hotels = hotels[:3]
 
-# ── 블루프린트 동작 확인용 테스트 라우트 (나중에 지워도 좋습니다) ──
-@bp.route('/test', methods=['GET'])
-def test_ping():
-    return 'schedules blueprint OK', 200
+    return jsonify({
+        'flights': top_flights,
+        'hotels':  top_hotels
+    })

@@ -102,6 +102,61 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     bootstrap.Modal.getInstance(document.getElementById('tripModal')).hide();
+
+    // ── 추천 API 호출 ─────────────────────
+    const recData = {
+      origin:      saved.departure_airport,
+      destination: saved.arrival_airport,
+      start_date:  saved.start,
+      end_date:    saved.end,
+      passenger:   saved.passengers,
+      budget:      saved.budget
+    };
+    const recResp = await fetchJSON('/api/schedules/recommendations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(recData)
+    });
+
+    // 카드 컨테이너 비우기
+    const container = document.getElementById('recommendationCards');
+    container.innerHTML = '';
+
+    // 항공 카드 3개 생성
+    recResp.flights.forEach(f => {
+      const col = document.createElement('div');
+      col.className = 'col-md-4';
+      col.innerHTML = `
+        <div class="card h-100">
+          <div class="card-header">✈ ${f.항공사}${f.편명}</div>
+          <div class="card-body">
+            <p><strong>출발:</strong> ${f.출발공항} ${new Date(f.출발시각).toLocaleString()}</p>
+            <p><strong>도착:</strong> ${f.도착공항} ${new Date(f.도착시각).toLocaleString()}</p>
+            <p><strong>가격:</strong> ${f.가격}</p>
+          </div>
+        </div>`;
+      container.appendChild(col);
+    });
+
+    // 숙소 카드 3개 생성
+    recResp.hotels.forEach(h => {
+      const col = document.createElement('div');
+      col.className = 'col-md-4';
+      col.innerHTML = `
+        <div class="card h-100">
+          <div class="card-header">🏨 ${h.숙소명}</div>
+          <div class="card-body">
+            <p><strong>체크인:</strong> ${h.체크인}</p>
+            <p><strong>체크아웃:</strong> ${h.체크아웃}</p>
+            <p><strong>상세:</strong> ${h.세부사항}</p>
+            <p><strong>가격:</strong> ${h.가격}</p>
+          </div>
+        </div>`;
+      container.appendChild(col);
+    });
+
+    // 추천 모달 띄우기
+    new bootstrap.Modal(document.getElementById('recommendationModal')).show();
   });
 });
 

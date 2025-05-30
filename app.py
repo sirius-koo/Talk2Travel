@@ -5,6 +5,7 @@ import uuid, click
 from config import Config
 from amadeus import Client, ResponseError
 from sqlalchemy import or_
+from talk2travel.routes.schedules import bp as schedules_bp
 
 amadeus = Client(
     client_id=Config.AMADEUS_CLIENT_ID,
@@ -16,6 +17,8 @@ app = Flask(
     template_folder="frontend/templates",
     static_folder="frontend/static"
 )
+
+app.register_blueprint(schedules_bp)
 
 # ── Database 설정 ─────────────────────────────────
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///schedules.db"
@@ -223,5 +226,4 @@ with app.app_context():
         db.create_all()
 
 if __name__ == "__main__":
-    # 앱 컨텍스트에서 테이블 생성
     app.run(debug=True)
