@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 import uuid, click
 from config import Config
 from amadeus import Client, ResponseError
+from sqlalchemy import or_
 
 amadeus = Client(
     client_id=Config.AMADEUS_CLIENT_ID,
@@ -38,15 +39,16 @@ class User(db.Model):
 class Schedule(db.Model):
     __tablename__ = "schedules"   # ERD의 TRIP 테이블
 
-    id         = db.Column(db.String(36), primary_key=True)
-    user_id    = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
-    start_date = db.Column(db.Date,   nullable=False)
-    end_date   = db.Column(db.Date,   nullable=False)
-    city       = db.Column(db.String(100), nullable=False)
-    passengers = db.Column(db.Integer,    nullable=False)
-    budget     = db.Column(db.Numeric(10,2), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    id                = db.Column(db.String(36), primary_key=True)
+    user_id           = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    start_date        = db.Column(db.Date,   nullable=False)
+    end_date          = db.Column(db.Date,   nullable=False)
+    departure_airport = db.Column(db.String(100), nullable=False)
+    arrival_airport   = db.Column(db.String(10), nullable=True)
+    passengers        = db.Column(db.Integer,    nullable=False)
+    budget            = db.Column(db.Numeric(10,2), nullable=True)
+    created_at        = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at        = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     transactions = db.relationship("PaymentTransaction", back_populates="trip")
 
@@ -85,6 +87,19 @@ class PaymentTransaction(db.Model):
     trip              = db.relationship("Schedule", back_populates="transactions")
     payment_method    = db.relationship("PaymentMethod", back_populates="transactions")
 
+# Aorport Code
+class Airport(db.Model):
+    __tablename__ = "airports"
+
+    iata_code = db.Column(db.String(3), primary_key=True)
+    icao_code = db.Column(db.String(4))
+    name_en   = db.Column(db.String(100), nullable=False)
+    name_ko   = db.Column(db.String(100))
+    region    = db.Column(db.String(100))
+    country_en= db.Column(db.String(100))
+    country_ko= db.Column(db.String(100))
+    city_en   = db.Column(db.String(100))
+
 # ────────────────────────────────────────────────────────
 @app.cli.command("init-db")
 def init_db():
@@ -109,7 +124,8 @@ def schedules_api():
                 "user_id":    s.user_id,
                 "start":      s.start_date.isoformat(),
                 "end":        s.end_date.isoformat(),
-                "city":       s.city,
+                "departure_airport":  s.departure_airport,
+                "arrival_airport":    s.arrival_airport,
                 "passengers": s.passengers,
                 "budget":     float(s.budget) if s.budget is not None else None
             }
@@ -118,7 +134,7 @@ def schedules_api():
 
     data = request.get_json()
     # 필수 필드 검증
-    for field in ("user_id", "start", "end", "city", "passengers"):
+    for field in ("user_id", "start", "end", "departure_airport", "arrival_airport", "passengers"):
         if field not in data:
             return jsonify({"error": f"Missing field: {field}"}), 400
 
@@ -148,7 +164,8 @@ def schedules_api():
         user_id    = data["user_id"],
         start_date = start_dt,
         end_date   = end_dt,
-        city       = data["city"],
+        departure_airport = data["departure_airport"],
+        arrival_airport   = data["arrival_airport"],
         passengers = passengers,
         budget     = budget
     )
@@ -160,10 +177,47 @@ def schedules_api():
         "user_id":    sched.user_id,
         "start":      sched.start_date.isoformat(),
         "end":        sched.end_date.isoformat(),
-        "city":       sched.city,
+        "departure_airport": sched.departure_airport,
+        "arrival_airport":   sched.arrival_airport,
         "passengers": sched.passengers,
         "budget":     sched.budget
     }), 201
+
+@app.route("/api/airports")
+def airports_api():
+    """
+    ?city=키워드 로 호출하면
+    city_en, name_en, name_ko 에 부분일치하는 공항 최대 10개를 반환
+    """
+    kw = request.args.get("city", "").strip()
+    if not kw:
+        return jsonify([]), 400
+
+    pattern = f"%{kw}%"
+    results = (
+        Airport.query
+        .filter(
+            or_(
+                Airport.city_en.ilike(pattern),
+                Airport.name_en.ilike(pattern),
+                Airport.name_ko.ilike(pattern)
+            )
+        )
+        .order_by(Airport.city_en)  # 원한다면 정렬 기준 조정
+        .limit(10)
+        .all()
+    )
+
+    return jsonify([
+        {
+            "code": a.iata_code,
+            "name": a.name_en,
+            "city": a.city_en
+        }
+        for a in results
+    ]), 200
+
+
 
 with app.app_context():
         db.create_all()
