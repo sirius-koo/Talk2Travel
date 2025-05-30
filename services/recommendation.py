@@ -1,5 +1,3 @@
-# E:\Capstone1\Talk2Travel\services\recommendation.py
-
 def rank_flights_by_price(offers: list, top_n: int = 3) -> list:
     """
     FlightOffers 리스트를 price.total 기준으로 오름차순 정렬해 상위 top_n 건 반환
