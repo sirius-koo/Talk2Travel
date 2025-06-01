@@ -26,20 +26,25 @@ def rank_hotels_by_price(offers: list, top_n: int = 3) -> list:
 def simplify_flight(offer: dict) -> dict:
     """
     flight-offer 객체에서 사용자에게 보여줄 최소 정보만 추출 (한국어 키)
+    - 연결편이 있는 경우도 고려해, 첫 세그먼트의 출발지와 마지막 세그먼트의 도착지를 모두 표시
     """
-    seg = offer["itineraries"][0]["segments"][0]
+    # offer["itineraries"][0]["segments"] 는 segments 리스트를 반환합니다.
+    segs = offer["itineraries"][0]["segments"]
+    first_seg = segs[0]
+    last_seg  = segs[-1]
+
     # 가격 및 통화
     price_total = offer.get("price", {}).get("total")
     currency    = offer.get("price", {}).get("currency")
     price_str   = f"{price_total} {currency}" if price_total and currency else None
 
     return {
-        "항공사":     seg["carrierCode"],
-        "편명":       seg["number"],
-        "출발공항":   seg["departure"]["iataCode"],
-        "출발시각":   seg["departure"]["at"],
-        "도착공항":   seg["arrival"]["iataCode"],
-        "도착시각":   seg["arrival"]["at"],
+        "항공사":     first_seg["carrierCode"],
+        "편명":       first_seg["number"],
+        "출발공항":   first_seg["departure"]["iataCode"],
+        "출발시각":   first_seg["departure"]["at"],
+        "도착공항":   last_seg["arrival"]["iataCode"],
+        "도착시각":   last_seg["arrival"]["at"],
         "가격":       price_str
     }
 
