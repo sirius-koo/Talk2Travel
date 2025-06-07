@@ -6,6 +6,7 @@ from config import Config
 from amadeus import Client, ResponseError
 from sqlalchemy import or_
 from talk2travel.routes.schedules import bp as schedules_bp
+from flasgger import Swagger, swag_from
 
 amadeus = Client(
     client_id=Config.AMADEUS_CLIENT_ID,
@@ -220,7 +221,17 @@ def airports_api():
         for a in results
     ]), 200
 
-
+swagger = Swagger(
+    app,
+    template={
+        "info": {
+            "title": "Talk2Travel API",
+            "description": "Travel Scheduling & Booking API",
+            "version": "1.0.0"
+        },
+        "servers": [{"url": "http://127.0.0.1:5000/apidocs"}]
+    }
+)
 
 with app.app_context():
         db.create_all()
